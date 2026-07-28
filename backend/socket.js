@@ -5,7 +5,9 @@ import Room from "./models/room.js";
 
 let ioInstance = null;
 // roomId -> Map(userId -> socketCount)
-const roomOnlineUsers = new Map();
+const roomOnlineUsers = new Map(); // this is a map that keeps track of online users in each room. The key is the roomId, and the value is another map that tracks userId to socketCount.
+//  This allows us to handle multiple connections from the same user in a room. 
+// all while the storage is in memory locally not the server.
 
 
 export const initSocket = (server) => {

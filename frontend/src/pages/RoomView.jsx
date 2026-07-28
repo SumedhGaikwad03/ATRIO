@@ -270,7 +270,7 @@ function RoomView() {
 
           <TaskSidebar
             show={showTasks}
-            setShowTasks={setShowTasks}
+            setShowTasks={setShowTasks}//what
             room={room}
             tasks={tasks}
             setTasks={setTasks}

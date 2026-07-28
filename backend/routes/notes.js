@@ -7,7 +7,9 @@ import Room from '../models/room.js';
 //import Activity from '../models/activity.js';
 import { getIO } from '../socket.js'; // 🔌 we get socket instance safely from singleton // 
 
-const router = express.Router();
+const router = express.Router(); // it is there to create a new router object that can be used to define routes for the notes resource.
+// also modulate the routes code and and use this router object to handle all the routes related to notes. 
+// and then we can export this router object and use it in the main app.js file to register the routes.
 
 
 // GET CURRENT USER NOTES (across all rooms)

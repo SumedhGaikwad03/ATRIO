@@ -16,6 +16,7 @@ dotenv.config();
 const app = express();
 
 // CORS configuration
+// from the entry point of app and who can give a command to the backend server and who can access the backend server
 app.use(cors({
   origin: [
     "https://notesy-sumedh-gaikwads-projects.vercel.app",
