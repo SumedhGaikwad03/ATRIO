@@ -14,6 +14,7 @@ Atrio is a real-time collaborative workspace where multiple users can create, ed
 
 - **Real-time sync** — edits to notes and tasks propagate live to every connected user via WebSockets, so collaborators always see the current state without refreshing.
 - **Shared workspaces** — notes and tasks live in a shared space that multiple users can access and edit together.
+- **JWT-based authentication** — user sessions are secured with JSON Web Tokens, keeping the API stateless and easy to scale horizontally.
 - **Frictionless onboarding** — designed so a new user can start collaborating immediately, without a heavy setup flow getting in the way.
 - **Deployed and used by real users** during a beta phase, not just a local demo.
 
@@ -37,10 +38,12 @@ Client (React) ⇄ REST API (Express) ⇄ MongoDB
 | Backend | Node.js, Express |
 | Database | MongoDB |
 | Real-time | Socket.io |
+| Auth | JWT (JSON Web Tokens) |
 
 ## Engineering notes
 
 - Socket.io was chosen over plain WebSockets for its built-in reconnection handling and room-based broadcasting, which made it straightforward to scope real-time updates to a specific workspace rather than broadcasting globally.
+- JWT-based auth keeps the API stateless — no server-side session store to manage — which fits naturally with a real-time app that already has to handle reconnects and multiple concurrent clients.
 - Keeping the REST API and the real-time layer separate (rather than routing everything through sockets) kept persistence logic centralized and easier to reason about, while still getting instant updates on the client.
 - Real-time features surface edge cases that a typical request/response API doesn't — reconnection after a dropped connection, and out-of-order events when multiple users edit concurrently were the two biggest things this project had to handle.
 
