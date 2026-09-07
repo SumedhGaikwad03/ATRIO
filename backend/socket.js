@@ -18,14 +18,15 @@ export const initSocket = (server) => {
   const clientOrigin = process.env.CLIENT_ORIGIN || "http://localhost:5173" || "https://notesy-backend-xrw3.onrender.com";
 
   ioInstance = new Server(server, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:5173",
-      "https://notesy-sumedh-gaikwads-projects.vercel.app",
-      "https://atrio-gamma.vercel.app",
+ cors: {
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://notesy-sumedh-gaikwads-projects.vercel.app",
+    "https://atrio-gamma.vercel.app",
+    "https://atrio.sumedhgaikwad.com",
+  ],
 
-    ],
     methods: ["GET", "POST"],
     credentials: true
   }

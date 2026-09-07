@@ -51,8 +51,8 @@ router.get("/:roomId/tasks", authMiddleware, async (req, res) => {
 */
 router.post("/:roomId/tasks", authMiddleware, async (req, res) => {
     const io = getIO();
-    console.log("🚀 TASK POST ROUTE HIT");
-console.log("🔥 IO instance exists:", !!io);
+    console.log(" TASK POST ROUTE HIT");
+console.log(" IO instance exists:", !!io);
   try {
     const { roomId } = req.params;
     const { text } = req.body;
@@ -77,10 +77,10 @@ console.log("🔥 IO instance exists:", !!io);
 });
 
 task = await task.populate("createdBy", "username");
-   console.log("🔥 Emitting task_created to:", roomId.toString());
+   console.log(" Emitting task_created to:", roomId.toString());
     const io = getIO();
     io.to(roomId.toString()).emit("task_created", task);
-    console.log("🔥 Emit done");
+    console.log(" Emit done");
 
     res.status(201).json(task);
 
