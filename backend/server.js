@@ -22,7 +22,9 @@ app.use(cors({
     "https://notesy-sumedh-gaikwads-projects.vercel.app",
     "https://atrio-gamma.vercel.app",
     "http://localhost:3000",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "https://atrio.sumedhgaikwad.com",
+
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type","Authorization"],
