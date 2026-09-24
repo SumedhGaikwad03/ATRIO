@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api ,{addNote} from "../utils/api";
+import api from "../utils/api";
 import { motion } from "framer-motion";
 import socket, { connectSocket } from "../sockets";
+
+import useNotes from "../features/notes/hooks/useNotes";
 
 import NoteEditorModal from "../components/modals/NoteEditorModal";
 import InviteModal from "../components/modals/InviteModal";
@@ -18,7 +20,15 @@ function RoomView() {
   const { roomId } = useParams();
   const navigate = useNavigate();
 
-  const [notes, setNotes] = useState([]);
+  const {
+    notes,
+    setNotes,
+    fetchNotes,
+    createNote,
+    deleteNote,
+    saveEdit
+  } = useNotes(roomId);
+
   const [room, setRoom] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -48,77 +58,23 @@ function RoomView() {
   }, [room?.name]);
 
   /* ── fetchers ── */
-  const fetchNotes = async () => { const r = await api.get(`/rooms/${roomId}/notes`); setNotes(r.data); };
   const fetchRoom = async () => { const r = await api.get(`/rooms/${roomId}`); setRoom(r.data); };
   const fetchTasks = async () => { const r = await api.get(`/rooms/${roomId}/tasks`); setTasks(r.data); };
 
   /* ── note actions ── */
-  const createNote = async () => {
+  const handleCreateNote = async () => {
     if (!title.trim() || !content.trim()) return;
-
-    // optimistic UI → show note instantly before server confirms
-    const tempId = "temp-" + Date.now();
-    const optimisticNote = {
-      _id: tempId,
-      title: title.trim(),
-      content: content.trim(),
-      roomId,
-      createdBy: { _id: currentUserId },
-      isOptimistic: true
-    };
-
-    setNotes(prev => [optimisticNote, ...prev]);
-    setTitle(""); setContent(""); setShowEditor(false);
-
-    try {
-      const res = await addNote({ title, content, roomId });
-
-      // replace temp note with real one from backend
-      setNotes(prev => prev.map(n => n._id === tempId ? res.data : n));
-    } catch (err) {
-      console.error(err);
-
-      // rollback if failed
-      setNotes(prev => prev.filter(n => n._id !== tempId));
-    }
+    const noteTitle = title;
+    const noteContent = content;
+    setTitle("");
+    setContent("");
+    setShowEditor(false);
+    await createNote(noteTitle, noteContent);
   };
 
-  // NOTE:
-  // you might have double optimistic updates because sockets already emit note_created
-  // so both frontend optimistic + socket event may duplicate work
-
-  const deleteNote = async (id) => {
-    const prev = notes;
-    setNotes(p => p.filter(n => n._id !== id));
-
-    try {
-      await api.delete(`/notes/delete/${id}`);
-    } catch (err) {
-      console.error(err);
-      setNotes(prev); // rollback
-    }
-  };
-
-  const saveEdit = async (id) => {
-    const prev = notes;
-
-    // optimistic update
-    setNotes(p => p.map(n =>
-      n._id === id ? { ...n, title: editTitle, content: editContent } : n
-    ));
-
+  const handleSaveEdit = async (id) => {
     setEditingId(null);
-
-    try {
-      await api.put(`/notes/update/${id}`, {
-        title: editTitle,
-        content: editContent
-      });
-    } catch (err) {
-      console.error(err);
-      setNotes(prev); // rollback
-      setEditingId(null);
-    }
+    await saveEdit(id, editTitle, editContent);
   };
 
   const addMember = async () => {
@@ -242,18 +198,12 @@ function RoomView() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="room-root"
-      style={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg,#fffbeb 0%,#fef3c7 35%,#fff7ed 65%,#ffedd5 100%)",
-        position: "relative",
-        overflowX: "hidden"
-      }}
     >
       <div className="blob blob-1" />
       <div className="blob blob-2" />
       <div className="blob blob-3" />
 
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div className="room-layout">
 
         <RoomHeader
           room={room}
@@ -292,7 +242,7 @@ function RoomView() {
             setEditTitle={setEditTitle}
             editContent={editContent}
             setEditContent={setEditContent}
-            saveEdit={saveEdit}
+            saveEdit={handleSaveEdit}
             deleteNote={deleteNote}
             getRotation={getRotation}
             roomId={roomId}
@@ -316,7 +266,7 @@ function RoomView() {
           setTitle("");
           setContent("");
         }}
-        onSave={createNote}
+        onSave={handleCreateNote}
       />
 
       <InviteModal
