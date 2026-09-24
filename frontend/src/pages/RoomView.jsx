@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../utils/api";
+import api ,{addNote} from "../utils/api";
 import { motion } from "framer-motion";
 import socket, { connectSocket } from "../sockets";
 
@@ -71,7 +71,7 @@ function RoomView() {
     setTitle(""); setContent(""); setShowEditor(false);
 
     try {
-      const res = await api.post("/notes/add", { title, content, roomId });
+      const res = await addNote({ title, content, roomId });
 
       // replace temp note with real one from backend
       setNotes(prev => prev.map(n => n._id === tempId ? res.data : n));
