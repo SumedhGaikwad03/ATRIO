@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../utils/api";
 import { motion } from "framer-motion";
 import socket, { connectSocket } from "../sockets";
 
 import useNotes from "../features/notes/hooks/useNotes";
+import useRoom from "../features/rooms/hooks/useRoom";
+import useTasks from "../features/tasks/hooks/useTasks";
 
 import NoteEditorModal from "../components/modals/NoteEditorModal";
 import InviteModal from "../components/modals/InviteModal";
@@ -29,8 +30,18 @@ function RoomView() {
     saveEdit
   } = useNotes(roomId);
 
-  const [room, setRoom] = useState(null);
-  const [tasks, setTasks] = useState([]);
+  const {
+    room,
+    fetchRoom,
+    addMember
+  } = useRoom(roomId);
+
+  const {
+    tasks,
+    setTasks,
+    fetchTasks
+  } = useTasks(roomId);
+
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [editingUsers, setEditingUsers] = useState({});
 
@@ -57,10 +68,6 @@ function RoomView() {
     return () => { document.title = "Atrio"; };
   }, [room?.name]);
 
-  /* ── fetchers ── */
-  const fetchRoom = async () => { const r = await api.get(`/rooms/${roomId}`); setRoom(r.data); };
-  const fetchTasks = async () => { const r = await api.get(`/rooms/${roomId}/tasks`); setTasks(r.data); };
-
   /* ── note actions ── */
   const handleCreateNote = async () => {
     if (!title.trim() || !content.trim()) return;
@@ -77,18 +84,12 @@ function RoomView() {
     await saveEdit(id, editTitle, editContent);
   };
 
-  const addMember = async () => {
+  const handleAddMember = async () => {
     try {
       setInviteError("");
-
-      await api.put(`/rooms/${roomId}/add-member`, {
-        userEmail: inviteEmail
-      });
-
+      await addMember(inviteEmail);
       setInviteEmail("");
       setShowInvite(false);
-
-      fetchRoom(); // refresh members
     } catch (err) {
       setInviteError(err.response?.data?.message || "Something went wrong.");
     }
@@ -274,7 +275,7 @@ function RoomView() {
         inviteEmail={inviteEmail}
         setInviteEmail={setInviteEmail}
         onClose={() => setShowInvite(false)}
-        onInvite={addMember}
+        onInvite={handleAddMember}
         error={inviteError}
         setError={setInviteError}
       />
