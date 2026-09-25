@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import socket, { connectSocket } from "../sockets";
+import socket from "../sockets";
 
 import useNotes from "../features/notes/hooks/useNotes";
 import useRoom from "../features/rooms/hooks/useRoom";
 import useTasks from "../features/tasks/hooks/useTasks";
+
+import useRoomRealtime from "../features/realtime/hooks/useRoomRealtime";
+import useTaskRealtime from "../features/realtime/hooks/useTaskRealtime";
+import useNoteRealtime from "../features/realtime/hooks/useNoteRealtime";
+import useRoomPresence from "../features/realtime/hooks/useRoomPresence";
 
 import NoteEditorModal from "../components/modals/NoteEditorModal";
 import InviteModal from "../components/modals/InviteModal";
@@ -21,27 +26,7 @@ function RoomView() {
   const { roomId } = useParams();
   const navigate = useNavigate();
 
-  const {
-    notes,
-    setNotes,
-    fetchNotes,
-    createNote,
-    deleteNote,
-    saveEdit
-  } = useNotes(roomId);
-
-  const {
-    room,
-    fetchRoom,
-    addMember
-  } = useRoom(roomId);
-
-  const {
-    tasks,
-    setTasks,
-    fetchTasks
-  } = useTasks(roomId);
-
+  // ── local state ──
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [editingUsers, setEditingUsers] = useState({});
 
@@ -59,141 +44,134 @@ function RoomView() {
   const [inviteError, setInviteError] = useState("");
   const [isAdding, setIsAdding] = useState(false);
 
+  // ── notes ──
+  const {
+    notes,
+    setNotes,
+    fetchNotes,
+    createNote,
+    deleteNote,
+    saveEdit
+  } = useNotes(roomId);
+
+  // ── room ──
+  const {
+    room,
+    fetchRoom,
+    addMember
+  } = useRoom(roomId);
+
+  // ── tasks ──
+  const {
+    tasks,
+    setTasks,
+    fetchTasks
+  } = useTasks(roomId);
+
+  // ── realtime ──
+  useRoomRealtime({ roomId });
+
+  useNoteRealtime({ setNotes });
+
+  useTaskRealtime({ setTasks });
+
+  useRoomPresence({
+    setOnlineUsers,
+    setEditingUsers
+  });
+
+  // ── current user ──
   const currentUserId = localStorage.getItem("userId");
   const currentUsername = localStorage.getItem("username");
 
-  /* ── document title ── */
+  // ── document title ──
   useEffect(() => {
-    if (room?.name) document.title = `${room.name} · Atrio`;
-    return () => { document.title = "Atrio"; };
+    if (room?.name) {
+      document.title = `${room.name} · Atrio`;
+    }
+
+    return () => {
+      document.title = "Atrio";
+    };
   }, [room?.name]);
 
-  /* ── note actions ── */
+  // ── note actions ──
   const handleCreateNote = async () => {
     if (!title.trim() || !content.trim()) return;
+
     const noteTitle = title;
     const noteContent = content;
+
     setTitle("");
     setContent("");
     setShowEditor(false);
+
     await createNote(noteTitle, noteContent);
   };
 
   const handleSaveEdit = async (id) => {
     setEditingId(null);
-    await saveEdit(id, editTitle, editContent);
+
+    await saveEdit(
+      id,
+      editTitle,
+      editContent
+    );
   };
 
+  // ── room actions ──
   const handleAddMember = async () => {
     try {
       setInviteError("");
+
       await addMember(inviteEmail);
+
       setInviteEmail("");
       setShowInvite(false);
     } catch (err) {
-      setInviteError(err.response?.data?.message || "Something went wrong.");
+      setInviteError(
+        err.response?.data?.message ||
+        "Something went wrong."
+      );
     }
   };
 
-  /* ── socket ── */
-  // socket is a way for server to communicate with frontend
-  // enables real-time 2-way communication
-
-  // sockets act like fast messengers
-  // we listen to events and react instantly → gives real-time feel
+  // ── initial room data + beta notice ──
   useEffect(() => {
     fetchNotes();
     fetchRoom();
     fetchTasks();
 
-    connectSocket();
-
-    const joinRoom = () => socket.emit("join_room", roomId);
-
     if (!localStorage.getItem("atrio_beta_seen")) {
       setShowBetaNotice(true);
     }
 
-    if (socket.connected) joinRoom();
-    socket.on("connect", joinRoom);
-
-    socket.on("note_created", (note) => {
-      setNotes(prev => {
-        // avoid duplicate
-        if (prev.some(n => n._id === note._id)) return prev;
-
-        // replace optimistic note if exists
-        const opt = prev.find(n => n.isOptimistic && n.title === note.title);
-        if (opt) return prev.map(n => n._id === opt._id ? note : n);
-
-        return [note, ...prev];
-      });
-    });
-
-    socket.on("note_updated", (note) =>
-      setNotes(prev => prev.map(n => n._id === note._id ? note : n))
-    );
-
-    socket.on("note_deleted", (noteId) =>
-      setNotes(prev => prev.filter(n => n._id !== noteId))
-    );
-
-    socket.on("task_created", (task) => {
-      setTasks(prev => {
-        const match = prev.find(t =>
-          t.isOptimistic &&
-          t.text === task.text &&
-          t.createdBy?._id === task.createdBy?._id
-        );
-
-        if (match) return prev.map(t => t._id === match._id ? task : t);
-
-        if (!prev.some(t => t._id === task._id)) {
-          return [task, ...prev.filter(t => !t.isOptimistic)];
-        }
-
-        return prev;
-      });
-    });
-
-    socket.on("task_updated", (t) =>
-      setTasks(prev => prev.map(p => p._id === t._id ? t : p))
-    );
-
-    socket.on("task_deleted", (id) =>
-      setTasks(prev => prev.filter(t => String(t._id) !== String(id)))
-    );
-
-    socket.on("online_users_update", setOnlineUsers);
-
-    socket.on("note_editing_update", ({ noteId, userId, isEditing }) => {
-      setEditingUsers(prev => {
-        const u = { ...prev };
-
-        if (isEditing) u[noteId] = userId;
-        else delete u[noteId];
-
-        return u;
-      });
-    });
-
     return () => {
-      socket.emit("leave_room", roomId);
       socket.off();
     };
   }, [roomId]);
 
-  /* ── utils ── */
+  // ── utils ──
   const getRotation = (id) => {
     const seed = id.slice(-3);
-    return ((parseInt(seed, 16) % 5) - 2) * 1.5;
+
+    return (
+      (parseInt(seed, 16) % 5 - 2) * 1.5
+    );
   };
 
-  const completedTasks = tasks.filter(t => t.completed).length;
-  const totalTasks = tasks.length;
-  const taskProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const completedTasks = tasks.filter(
+    (task) => task.completed
+  ).length;
 
-  /* ── render ── */
+  const totalTasks = tasks.length;
+
+  const taskProgress =
+    totalTasks > 0
+      ? (completedTasks / totalTasks) * 100
+      : 0;
+
+  // ── render ──
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -217,11 +195,16 @@ function RoomView() {
           navigate={navigate}
         />
 
-        <div style={{ display: "flex", flex: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            flex: 1
+          }}
+        >
 
           <TaskSidebar
             show={showTasks}
-            setShowTasks={setShowTasks}//what
+            setShowTasks={setShowTasks}
             room={room}
             tasks={tasks}
             setTasks={setTasks}
@@ -284,7 +267,11 @@ function RoomView() {
         show={showBetaNotice}
         onClose={() => setShowBetaNotice(false)}
         onConfirm={() => {
-          localStorage.setItem("atrio_beta_seen", "true");
+          localStorage.setItem(
+            "atrio_beta_seen",
+            "true"
+          );
+
           setShowBetaNotice(false);
         }}
       />
