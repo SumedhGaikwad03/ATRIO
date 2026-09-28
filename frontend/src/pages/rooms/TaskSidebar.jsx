@@ -1,24 +1,22 @@
 import { AnimatePresence, motion } from "framer-motion";
-import api from "../../utils/api";
+
 
 function TaskSidebar({
   show,
   setShowTasks,
   room,
   tasks,
-  setTasks,
-  roomId,
-  currentUserId,
+  createTask,
+  updateTask,
+  deleteTask,
+ 
   isAdding,
   setIsAdding,
   taskProgress,
   completedTasks,
   totalTasks,
 }) {
-  const fetchTasks = async () => {
-    const r = await api.get(`/rooms/${roomId}/tasks`);
-    setTasks(r.data);
-  };
+  
 
   return (
     <AnimatePresence>
@@ -75,16 +73,18 @@ function TaskSidebar({
                     checked={task.completed}
                     style={{ marginTop: "2px", accentColor: "#f97316", width: "15px", height: "15px", cursor: "pointer", flexShrink: 0 }}
                     onChange={async () => {
-                      if (task.isOptimistic) return;
-                      const updated = !task.completed;
-                      setTasks(prev => prev.map(t => t._id === task._id ? { ...t, completed: updated, isOptimistic: true } : t));
-                      try {
-                        await api.put(`/rooms/${roomId}/tasks/${task._id}`, { completed: updated });
-                        setTasks(prev => prev.map(t => t._id === task._id ? { ...t, isOptimistic: false } : t));
-                      } catch {
-                        setTasks(prev => prev.map(t => t._id === task._id ? { ...t, completed: !updated, isOptimistic: false } : t));
-                      }
-                    }}
+  if (task.isOptimistic) return;
+
+  const updated = !task.completed;
+
+  try {
+    await updateTask(task._id, {
+      completed: updated
+    });
+  } catch {
+    // useTasks handles rollback
+  }
+}}
                   />
                   <div style={{ flex: 1, minWidth: 0, marginLeft: "10px" }}>
                     <p style={{
@@ -103,12 +103,14 @@ function TaskSidebar({
                   </div>
                   <button
                     onClick={async () => {
-                      const id = task._id;
-                      setTasks(prev => prev.filter(t => t._id !== id));
+                     
                       if (task.isOptimistic) return;
-                      try { await api.delete(`/rooms/${roomId}/tasks/${id}`); }
-                      catch { fetchTasks(); }
-                    }}
+                      try {
+    await deleteTask(task._id);
+  } catch {
+    // useTasks handles rollback
+  }
+}}
                     style={{ marginLeft: "8px", width: "22px", height: "22px", borderRadius: "50%", border: "none", background: "transparent", color: "#d4c5b0", fontSize: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "background 0.15s, color 0.15s" }}
                     onMouseEnter={e => { e.target.style.background = "#fee2e2"; e.target.style.color = "#dc2626"; }}
                     onMouseLeave={e => { e.target.style.background = "transparent"; e.target.style.color = "#d4c5b0"; }}
@@ -139,18 +141,16 @@ function TaskSidebar({
                     if (isAdding) return;
                     setIsAdding(true);
                     const text = e.target.value.trim();
-                    const tempId = "temp-" + Date.now();
-                    const optimisticTask = { _id: tempId, text, completed: false, createdBy: { _id: currentUserId }, isOptimistic: true };
-                    setTasks(prev => [...prev, optimisticTask]);
-                    e.target.value = "";
-                    try {
-                      const res = await api.post(`/rooms/${roomId}/tasks`, { text });
-                      setTasks(prev => prev.map(t => t._id === tempId ? res.data : t));
-                    } catch {
-                      setTasks(prev => prev.filter(t => t._id !== tempId));
-                    } finally { setIsAdding(false); }
-                  }
-                }}
+                    
+                     try {
+      await createTask(text);
+    } catch {
+      // useTasks already rolled back the optimistic task
+    } finally {
+      setIsAdding(false);
+    }
+  }
+}}
               />
             </div>
           </motion.div>

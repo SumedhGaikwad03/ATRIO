@@ -65,7 +65,8 @@ function RoomView() {
   const {
     tasks,
     setTasks,
-    fetchTasks
+    fetchTasks,
+    createTask
   } = useTasks(roomId);
 
   // ── realtime ──
@@ -215,6 +216,7 @@ function RoomView() {
             taskProgress={taskProgress}
             completedTasks={completedTasks}
             totalTasks={totalTasks}
+            createTask={createTask}
           />
 
           <NotesBoard
