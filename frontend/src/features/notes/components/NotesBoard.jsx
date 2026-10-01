@@ -1,21 +1,14 @@
 import { AnimatePresence, motion } from "framer-motion";
-import NoteCard from "../../components/notes/NoteCard";
+import NoteCard from "./NoteCard";
+import { isNoteBeingEditedByOther } from "../../realtime/utils/presence";
 
 function NotesBoard({
   notes,
   showTasks,
-  editingId,
-  setEditingId,
-  editTitle,
-  setEditTitle,
-  editContent,
-  setEditContent,
   saveEdit,
   deleteNote,
-  getRotation,
   roomId,
   editingUsers,
-  socket,
   currentUserId,
   setShowEditor,
 }) {
@@ -45,19 +38,14 @@ function NotesBoard({
                 key={note._id}
                 layoutId={note._id}
                 note={note}
-                editingId={editingId}
-                setEditingId={setEditingId}
-                editTitle={editTitle}
-                setEditTitle={setEditTitle}
-                editContent={editContent}
-                setEditContent={setEditContent}
                 saveEdit={saveEdit}
                 deleteNote={deleteNote}
-                getRotation={getRotation}
                 roomId={roomId}
-                editingUsers={editingUsers}
-                socket={socket}
-                currentUserId={currentUserId}
+                isBeingEditedByOther={isNoteBeingEditedByOther(
+                  editingUsers,
+                  note._id,
+                  currentUserId
+                )}
               />
             ))}
           </AnimatePresence>

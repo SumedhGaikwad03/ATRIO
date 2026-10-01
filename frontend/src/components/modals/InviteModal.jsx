@@ -1,12 +1,31 @@
-import React from "react";
+import React, { useState } from "react";
 
-function InviteModal({ show, inviteEmail, setInviteEmail, onClose, onInvite, error, setError }) {
+function InviteModal({ show, onClose, onInvite }) {
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteError, setInviteError] = useState("");
+
   if (!show) return null;
 
   const handleClose = () => {
     setInviteEmail("");
-    if (setError) setError("");
+    setInviteError("");
     onClose();
+  };
+
+  const handleInvite = async () => {
+    if (!inviteEmail.trim()) return;
+
+    try {
+      setInviteError("");
+      await onInvite(inviteEmail.trim());
+      setInviteEmail("");
+      setInviteError("");
+    } catch (err) {
+      setInviteError(
+        err.response?.data?.message ||
+        "Something went wrong."
+      );
+    }
   };
 
   return (
@@ -63,17 +82,20 @@ function InviteModal({ show, inviteEmail, setInviteEmail, onClose, onInvite, err
                 className="invite-input"
                 placeholder="colleague@example.com"
                 value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && inviteEmail.trim() && onInvite()}
+                onChange={(e) => {
+                  setInviteEmail(e.target.value);
+                  if (inviteError) setInviteError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && inviteEmail.trim() && handleInvite()}
                 autoFocus
               />
             </div>
 
             {/* Error */}
-            {error && (
+            {inviteError && (
               <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm text-red-600 font-medium mb-4"
                 style={{ background: "rgba(254,226,226,0.75)", border: "1px solid rgba(252,165,165,0.4)" }}>
-                <span>⚠</span> {error}
+                <span>⚠</span> {inviteError}
               </div>
             )}
 
@@ -85,7 +107,7 @@ function InviteModal({ show, inviteEmail, setInviteEmail, onClose, onInvite, err
                 Cancel
               </button>
               <button
-                onClick={onInvite}
+                onClick={handleInvite}
                 disabled={!inviteEmail.trim()}
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", boxShadow: inviteEmail.trim() ? "0 4px 14px rgba(234,88,12,0.3)" : "none" }}>

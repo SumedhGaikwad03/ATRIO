@@ -1,13 +1,9 @@
-import {useEffect} from "react";
+import { useEffect } from "react";
 import socket from "../../../sockets";
 
-// we are taking all the note realted listeners out of room view 
-
-const useNoteRealtime =({ setNotes}) => {
-
-    useEffect(()=> {
-
-       const handleNoteCreated = (note) => {
+const useNoteRealtime = ({ setNotes }) => {
+  useEffect(() => {
+    const handleNoteCreated = (note) => {
       setNotes((prev) => {
         // Avoid duplicates
         if (prev.some((n) => n._id === note._id)) {
@@ -29,31 +25,28 @@ const useNoteRealtime =({ setNotes}) => {
       });
     };
 
-const handelNoteUpdated = (note) => {
+    const handleNoteUpdated = (note) => {
+      setNotes((prev) =>
+        prev.map((n) => (n._id === note._id ? note : n))
+      );
+    };
 
-    setNotes((prev) => 
-    prev.map((n) => (n._id === note._id ? note : n ))
-);
+    const handleNoteDeleted = (noteId) => {
+      setNotes((prev) =>
+        prev.filter((n) => n._id !== noteId)
+      );
+    };
+
+    socket.on("note_created", handleNoteCreated);
+    socket.on("note_updated", handleNoteUpdated);
+    socket.on("note_deleted", handleNoteDeleted);
+
+    return () => {
+      socket.off("note_created", handleNoteCreated);
+      socket.off("note_updated", handleNoteUpdated);
+      socket.off("note_deleted", handleNoteDeleted);
+    };
+  }, [setNotes]);
 };
 
-const handelNoteDeleted = (noteId) => {
-
-    setNotes((prev) => 
-    prev.filter((n)=> n._id !== noteId )
-);
-};
-socket.on("note_created", handleNoteCreated);
-socket.on("note_deleted", handelNoteDeleted);
-socket.on("note_updated" , handelNoteUpdated); 
-
-
-return () => {
-
-    socket.off("note_created", handleNoteCreated);
-    socket.off("note_deleted", handelNoteDeleted);
-    socket.off("note_updated", handelNoteUpdated);
-};
-    }, [setNotes]);
-};
-
-export default useNoteRealtime; 
+export default useNoteRealtime;

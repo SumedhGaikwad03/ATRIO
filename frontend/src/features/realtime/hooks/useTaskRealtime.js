@@ -1,10 +1,8 @@
 import { useEffect } from "react";
 import socket from "../../../sockets";
 
-
-   const useTaskRealtime = ({ setTasks }) => {
+const useTaskRealtime = ({ setTasks }) => {
   useEffect(() => {
-    
     const handleTaskCreated = (task) => {
       setTasks((prev) => {
         const optimisticTask = prev.find(
@@ -28,39 +26,29 @@ import socket from "../../../sockets";
       });
     };
 
-    const handelTaskUpdated = (task) => {
+    const handleTaskUpdated = (task) => {
+      setTasks((prev) =>
+        prev.map((t) => (t._id === task._id ? task : t))
+      );
+    };
 
-        setTasks((prev)=> 
-            prev.map((t) => (t._id === task._id ?task : t ))
-    );
+    const handleTaskDeleted = (taskId) => {
+      // cuz it only receives a string we have to stringfy the id
+      setTasks((prev) =>
+        prev.filter((t) => String(t._id) !== String(taskId))
+      );
+    };
+
+    socket.on("task_created", handleTaskCreated);
+    socket.on("task_updated", handleTaskUpdated);
+    socket.on("task_deleted", handleTaskDeleted);
+
+    return () => {
+      socket.off("task_created", handleTaskCreated);
+      socket.off("task_updated", handleTaskUpdated);
+      socket.off("task_deleted", handleTaskDeleted);
+    };
+  }, [setTasks]);
 };
 
-const handelTaskDeleted = (taskId) => {
-  // cuz it only receives a string we have to stringfy the id
-    setTasks((prev) => 
-    prev.filter((t)=> String(t._id) !== String(taskId))
-);
-
-
-};
-
-socket.on("task_created" , handleTaskCreated);
-socket.on("task_updated" , handelTaskUpdated);
-socket.on("task_deleted" , handelTaskDeleted);
-
-return() => {
-
-    socket.off("task_created ",handleTaskCreated);
-    socket.off("task_updated", handelTaskDeleted);
-    socket.off("task_deleted", handelTaskDeleted);
-
-} ;
-  } , [setTasks]);
-
-}; 
-
-export default useTaskRealtime ; 
-
-
-
-
+export default useTaskRealtime;

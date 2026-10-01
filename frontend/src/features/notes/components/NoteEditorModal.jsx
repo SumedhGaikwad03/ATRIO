@@ -1,10 +1,26 @@
-import React from "react";
-import NoteEditor from "../notes/NoteEditor";
+import React, { useState } from "react";
+import NoteEditor from "./NoteEditor";
 
-// this is used for note updation in  the process 
+function NoteEditorModal({ show, onClose, onSave }) {
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
 
-function NoteEditorModal({ show, title, content, setTitle, setContent, onClose, onSave }) {
   if (!show) return null;
+
+  const handleClose = () => {
+    setTitle("");
+    setContent("");
+    onClose();
+  };
+
+  const handleSave = () => {
+    if (!title.trim() || !content.trim()) return;
+    const noteTitle = title;
+    const noteContent = content;
+    setTitle("");
+    setContent("");
+    onSave(noteTitle, noteContent);
+  };
 
   return (
     <>
@@ -16,7 +32,7 @@ function NoteEditorModal({ show, title, content, setTitle, setContent, onClose, 
 
       <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
         style={{ background: "rgba(0,0,0,0.35)", backdropFilter: "blur(6px)" }}
-        onClick={onClose}>
+        onClick={handleClose}>
 
         <div className="note-modal-enter relative w-full max-w-2xl rounded-3xl overflow-hidden flex flex-col"
           style={{
@@ -42,7 +58,7 @@ function NoteEditorModal({ show, title, content, setTitle, setContent, onClose, 
                 New Note
               </h2>
             </div>
-            <button onClick={onClose}
+            <button onClick={handleClose}
               className="w-7 h-7 rounded-full bg-amber-100 text-amber-600 hover:bg-red-100 hover:text-red-500 transition flex items-center justify-center font-bold text-lg">
               ×
             </button>
@@ -65,13 +81,13 @@ function NoteEditorModal({ show, title, content, setTitle, setContent, onClose, 
               {title.trim() && content.trim() ? "✓ Ready to save" : "Fill in title and content"}
             </p>
             <div className="flex gap-2">
-              <button onClick={onClose}
+              <button onClick={handleClose}
                 className="px-4 py-2 rounded-xl text-sm font-medium text-gray-500 transition hover:bg-gray-200"
                 style={{ background: "#f3f4f6" }}>
                 Cancel
               </button>
               <button
-                onClick={onSave}
+                onClick={handleSave}
                 disabled={!title.trim() || !content.trim()}
                 className="px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                 style={{ background: "linear-gradient(135deg,#f97316,#ea580c)", boxShadow: (title.trim() && content.trim()) ? "0 4px 14px rgba(234,88,12,0.3)" : "none" }}>

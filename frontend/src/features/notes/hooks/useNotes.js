@@ -61,7 +61,7 @@ export function useNotes(roomId) {
     }
   };
 
-  const saveEdit = async (id, title, content) => {
+  const updateNote = async (id, title, content) => {
     const prev = notes;
 
     // optimistic update
@@ -82,13 +82,16 @@ export function useNotes(roomId) {
     }
   };
 
+  const saveEdit = updateNote;
+
   return {
     notes,
     setNotes,
     fetchNotes,
     createNote,
-    deleteNote,
-    saveEdit
+    updateNote,
+    saveEdit,
+    deleteNote
   };
 }
 
