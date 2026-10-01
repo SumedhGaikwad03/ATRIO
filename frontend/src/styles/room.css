@@ -1,6 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,400&family=DM+Sans:wght@300;400;500;600&display=swap');
 
+.room-root {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 35%, #fff7ed 65%, #ffedd5 100%);
+  position: relative;
+  overflow-x: hidden;
+}
+
 .room-root * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
+
+.room-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
 /* ── BLOBS ── */
 @keyframes blob1 { 0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(50px,-60px) scale(1.08);}50%{transform:translate(-30px,50px) scale(0.95);}75%{transform:translate(60px,30px) scale(1.04);} }

@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/api";
+import useRooms from "../features/rooms/hooks/useRooms";
 import CreateRoomModal from "../components/modals/CreateRoomModal";
 import LeaveRoomModal from "../components/modals/LeaveRoomModal";
 
 function Rooms() {
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    rooms,
+    loading,
+    createRoom,
+    leaveRoom,
+  } = useRooms();
+
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [roomToLeave, setRoomToLeave] = useState(null);
@@ -39,40 +44,24 @@ function Rooms() {
     navigate("/login");
   };
 
-  /* ── ROOMS ── */
-  const createRoom = async (name) => {
+  /* ── ROOM ACTIONS ── */
+  const handleCreateRoom = async (name) => {
     try {
-      const res = await api.post("/rooms/create", { name });
-      setRooms((prev) => [res.data, ...prev]);
+      await createRoom(name);
       setShowCreateModal(false);
     } catch (err) {
-      console.error("Room creation failed:", err);
+      // Handled in useRooms hook
     }
   };
 
   const handleLeaveRoom = async (roomId) => {
     try {
-      await api.delete(`/rooms/${roomId}/leave`);
-      setRooms((prev) => prev.filter((room) => room._id !== roomId));
+      await leaveRoom(roomId);
       setShowLeaveModal(false);
     } catch (err) {
-      console.error("Failed to leave room:", err);
+      // Handled in useRooms hook
     }
   };
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const res = await api.get("/rooms/myrooms");
-        setRooms(res.data);
-      } catch (err) {
-        console.error("Failed to fetch rooms:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRooms();
-  }, []);
 
   const handleRoomClick = (roomId) => navigate(`/rooms/${roomId}`);
 
@@ -485,7 +474,7 @@ function Rooms() {
       <CreateRoomModal
         show={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onCreate={createRoom}
+        onCreate={handleCreateRoom}
       />
       <LeaveRoomModal
         show={showLeaveModal}
